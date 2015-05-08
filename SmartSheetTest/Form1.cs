@@ -67,7 +67,7 @@ namespace SmartSheetTest
             using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                cmd = "select customer as Client,Incident_ID as IncidentID,AssignedTo,cast(StartDate as date) as StartDate,cast(LastActionDate as date) as LastActionDate,Problem,TeamName from supportssrs.dbo.TB_INCIDENT where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null order by TeamName";
+                cmd = "select customer as Client,Incident_ID as IncidentID,AssignedTo,cast(StartDate as date) as StartDate,cast(LastActionDate as date) as LastAction,Problem,TeamName from supportssrs.dbo.TB_INCIDENT where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null order by TeamName";
                 using (SqlDataAdapter reader = new SqlDataAdapter(cmd, conn))
                 {
                     reader.Fill(table1);
@@ -94,8 +94,8 @@ namespace SmartSheetTest
                 cellStartDate.ColumnId = columnList.First(kvp => kvp.Key == "StartDate").Value;
                 
                 Cell cellLastActionDate = new Cell();
-                cellLastActionDate.Value = dtrow["LastActionDate"];
-                cellLastActionDate.ColumnId = columnList.First(kvp => kvp.Key == "LastActionDate").Value;
+                cellLastActionDate.Value = dtrow["LastAction"];
+                cellLastActionDate.ColumnId = columnList.First(kvp => kvp.Key == "LastAction").Value;
                
                 Cell cellProblem = new Cell();
                 cellProblem.Value = dtrow["Problem"];
