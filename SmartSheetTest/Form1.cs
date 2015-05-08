@@ -67,7 +67,7 @@ namespace SmartSheetTest
             using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                cmd = "select customer as Client,Incident_ID as IncidentID,AssignedTo,cast(StartDate as date) as StartDate,cast(LastActionDate as date) as LastAction,Problem,TeamName from supportssrs.dbo.TB_INCIDENT where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null order by TeamName";
+                cmd = "select Customer as Client,Incident_ID as IncidentID,AssignedTo,cast(StartDate as date) as StartDate,cast(LastActionDate as date) as LastAction,Problem,TeamName from supportssrs.dbo.TB_INCIDENT where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null order by TeamName asc, Customer asc";
                 using (SqlDataAdapter reader = new SqlDataAdapter(cmd, conn))
                 {
                     reader.Fill(table1);
