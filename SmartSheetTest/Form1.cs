@@ -55,12 +55,19 @@ namespace SmartSheetTest
             // Use the Smartsheet Builder to create a Smartsheet
             SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
 
+            var sheetList = getSheetList();
+
+            long sheetID = sheetList.First(kvp => kvp.Key == "Old Incidents").Value;
+
+            //Get the list of columns
+            var columnList = getColumnList(sheetID);
+
             connString = "Server=srv-it3.celerant.com;Database=SupportSSRS;Trusted_Connection=Yes;";
             DataTable table1 = new DataTable();
             using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                cmd = "select customer,Incident_ID,AssignedTo,cast(StartDate as date),cast(LastActionDate as date),Problem,TeamName from supportssrs.dbo.TB_INCIDENT where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null order by TeamName";
+                cmd = "select customer as Client,Incident_ID as IncidentID,AssignedTo,cast(StartDate as date) as StartDate,cast(LastActionDate as date) as LastActionDate,Problem,TeamName from supportssrs.dbo.TB_INCIDENT where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null order by TeamName";
                 using (SqlDataAdapter reader = new SqlDataAdapter(cmd, conn))
                 {
                     reader.Fill(table1);
@@ -70,27 +77,33 @@ namespace SmartSheetTest
             foreach (DataRow dtrow in table1.Rows)
             {
                 Cell cellClient = new Cell();
-                cellClient.Value = dtrow.ItemArray[0];
+                cellClient.Value = dtrow["Client"];
                 cellClient.Strict = false;
-                cellClient.ColumnId = 7656332250638212;
+                cellClient.ColumnId = columnList.First(kvp => kvp.Key == "Client").Value;
+
                 Cell cellIncidentID = new Cell();
-                cellIncidentID.Value = dtrow.ItemArray[1];
-                cellIncidentID.ColumnId = 2026832716425092;
+                cellIncidentID.Value = dtrow["IncidentID"];
+                cellIncidentID.ColumnId = columnList.First(kvp => kvp.Key == "IncidentID").Value;
+
                 Cell cellAssignedTo = new Cell();
-                cellAssignedTo.Value = dtrow.ItemArray[2];
-                cellAssignedTo.ColumnId = 1078710095898500;
+                cellAssignedTo.Value = dtrow["AssignedTo"];
+                cellAssignedTo.ColumnId = columnList.First(kvp => kvp.Key == "AssignedTo").Value;
+                
                 Cell cellStartDate = new Cell();
-                cellStartDate.Value = dtrow.ItemArray[3];
-                cellStartDate.ColumnId = 5582309723268996;
+                cellStartDate.Value = dtrow["StartDate"];
+                cellStartDate.ColumnId = columnList.First(kvp => kvp.Key == "StartDate").Value;
+                
                 Cell cellLastActionDate = new Cell();
-                cellLastActionDate.Value = dtrow.ItemArray[4];
-                cellLastActionDate.ColumnId = 3330509909583748;
+                cellLastActionDate.Value = dtrow["LastActionDate"];
+                cellLastActionDate.ColumnId = columnList.First(kvp => kvp.Key == "LastActionDate").Value;
+               
                 Cell cellProblem = new Cell();
-                cellProblem.Value = dtrow.ItemArray[5];
-                cellProblem.ColumnId = 7834109536954244;
-                Cell cellTeamLead = new Cell();
-                cellTeamLead.Value = dtrow.ItemArray[6];
-                cellTeamLead.ColumnId = 7706340568131460;
+                cellProblem.Value = dtrow["Problem"];
+                cellProblem.ColumnId = columnList.First(kvp => kvp.Key == "Problem").Value;
+                
+                Cell cellTeamName = new Cell();
+                cellTeamName.Value = dtrow["TeamName"];
+                cellTeamName.ColumnId = columnList.First(kvp => kvp.Key == "TeamName").Value;
 
                 //// Store the cells in a list
                 List<Cell> cells1 = new List<Cell>();
@@ -100,7 +113,7 @@ namespace SmartSheetTest
                 cells1.Add(cellStartDate);
                 cells1.Add(cellLastActionDate);
                 cells1.Add(cellProblem);
-                cells1.Add(cellTeamLead);
+                cells1.Add(cellTeamName);
                 //// Create a row and add the list of cells to the row
                 Row row = new Row();
 
@@ -122,12 +135,56 @@ namespace SmartSheetTest
             // Use the Smartsheet Builder to create a Smartsheet
             SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
             IList<Column> sheetCols = smartsheet.Sheets().Columns().ListColumns(1449506131732356);
+
             foreach (Column tmpCols in sheetCols)
             {
 
                 Console.WriteLine("sheet:" + tmpCols.ID + " " + tmpCols.Title);
                 Output.Text = Output.Text + tmpCols.ID + " " + tmpCols.Title + "\r\n";
             }
+        }
+
+        private List<KeyValuePair<string, long>> getColumnList(long sheetID)
+        {
+            // Set the Access Token
+            Token token = new Token();
+            token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
+
+            // Use the Smartsheet Builder to create a Smartsheet
+            SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
+            IList<Column> sheetCols = smartsheet.Sheets().Columns().ListColumns(sheetID);
+
+            var columnTitleIDList = new List<KeyValuePair<string, long>>();
+
+            foreach (Column tmpCols in sheetCols)
+            {
+                columnTitleIDList.Add(new KeyValuePair<string, long>((string)tmpCols.Title, (long)tmpCols.ID));
+            }
+            return columnTitleIDList;
+        }
+
+        private List<KeyValuePair<string, long>> getSheetList()
+        {
+            // Set the Access Token
+            Token token = new Token();
+            token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
+
+            // Use the Smartsheet Builder to create a Smartsheet
+            SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
+
+            // Get home
+            Home home = smartsheet.Home().GetHome(new ObjectInclusion[] { ObjectInclusion.TEMPLATES });
+
+            // List Sheets
+            IList<Sheet> homeSheets = smartsheet.Sheets().ListSheets();
+
+            var sheetNameIDList = new List<KeyValuePair<string, long>>();
+
+            foreach (Sheet tmpSheet in homeSheets)
+            {
+                sheetNameIDList.Add(new KeyValuePair<string, long>((string)tmpSheet.Name, (long)tmpSheet.ID));             
+            }
+            return sheetNameIDList;
         }
 
         public string connString { get; set; }
