@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -26,8 +27,6 @@ namespace SmartSheetTest
         private void button1_Click(object sender, EventArgs e)
         {
             // Set the Access Token
-            Token token = new Token();
-            token.AccessToken = "4ox8qvd0qyaj6y12vn302ccwy1";
 
             // Use the Smartsheet Builder to create a Smartsheet
             SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
@@ -48,9 +47,6 @@ namespace SmartSheetTest
         private void UpdateSheet_Click(object sender, EventArgs e)
         {
             // Set the Access Token
-            Token token = new Token();
-            token.AccessToken = "4ox8qvd0qyaj6y12vn302ccwy1";
-
             // Use the Smartsheet Builder to create a Smartsheet
             SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
 
@@ -59,7 +55,7 @@ namespace SmartSheetTest
             using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                cmd = "select customer,Incident_ID,AssignedTo,cast(StartDate as date),cast(LastActionDate as date),Problem from supportssrs.dbo.TB_INCIDENT where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null";
+                cmd = "select customer,Incident_ID,AssignedTo,cast(StartDate as date),cast(LastActionDate as date),Problem,TeamName from supportssrs.dbo.TB_INCIDENT where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null order by TeamName";
                 using (SqlDataAdapter reader = new SqlDataAdapter(cmd, conn))
                 {
                     reader.Fill(table1);
@@ -87,6 +83,9 @@ namespace SmartSheetTest
                 Cell cellProblem = new Cell();
                 cellProblem.Value = dtrow.ItemArray[5];
                 cellProblem.ColumnId = 7834109536954244;
+                Cell cellTeamLead = new Cell();
+                cellTeamLead.Value = dtrow.ItemArray[6];
+                cellTeamLead.ColumnId = 7706340568131460;
 
                 //// Store the cells in a list
                 List<Cell> cells1 = new List<Cell>();
@@ -96,6 +95,7 @@ namespace SmartSheetTest
                 cells1.Add(cellStartDate);
                 cells1.Add(cellLastActionDate);
                 cells1.Add(cellProblem);
+                cells1.Add(cellTeamLead);
                 //// Create a row and add the list of cells to the row
                 Row row = new Row();
 
@@ -111,8 +111,6 @@ namespace SmartSheetTest
         private void ListColumns_Click(object sender, EventArgs e)
         {
             // Set the Access Token
-            Token token = new Token();
-            token.AccessToken = "4ox8qvd0qyaj6y12vn302ccwy1";
 
             // Use the Smartsheet Builder to create a Smartsheet
             SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
