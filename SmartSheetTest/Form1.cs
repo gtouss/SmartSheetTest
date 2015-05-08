@@ -106,18 +106,18 @@ namespace SmartSheetTest
                 cellTeamName.ColumnId = columnList.First(kvp => kvp.Key == "TeamName").Value;
 
                 //// Store the cells in a list
-                List<Cell> cells1 = new List<Cell>();
-                cells1.Add(cellClient);
-                cells1.Add(cellIncidentID);
-                cells1.Add(cellAssignedTo);
-                cells1.Add(cellStartDate);
-                cells1.Add(cellLastActionDate);
-                cells1.Add(cellProblem);
-                cells1.Add(cellTeamName);
+                List<Cell> cellList = new List<Cell>();
+                cellList.Add(cellClient);
+                cellList.Add(cellIncidentID);
+                cellList.Add(cellAssignedTo);
+                cellList.Add(cellStartDate);
+                cellList.Add(cellLastActionDate);
+                cellList.Add(cellProblem);
+                cellList.Add(cellTeamName);
                 //// Create a row and add the list of cells to the row
                 Row row = new Row();
 
-                row.Cells = cells1;
+                row.Cells = cellList;
                 //// Add two rows to a list of rows.
                 List<Row> rows = new List<Row>();
                 rows.Add(row);
@@ -144,16 +144,30 @@ namespace SmartSheetTest
             }
         }
 
-        private List<KeyValuePair<string, long>> getColumnList(long sheetID)
+        private List<KeyValuePair<string, long>> getSheetList()
         {
-            // Set the Access Token
             Token token = new Token();
             token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
 
-            // Use the Smartsheet Builder to create a Smartsheet
+            SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
+            Home home = smartsheet.Home().GetHome(new ObjectInclusion[] { ObjectInclusion.TEMPLATES });
+            IList<Sheet> homeSheets = smartsheet.Sheets().ListSheets();
+            var sheetNameIDList = new List<KeyValuePair<string, long>>();
+
+            foreach (Sheet tmpSheet in homeSheets)
+            {
+                sheetNameIDList.Add(new KeyValuePair<string, long>((string)tmpSheet.Name, (long)tmpSheet.ID));
+            }
+            return sheetNameIDList;
+        }
+
+        private List<KeyValuePair<string, long>> getColumnList(long sheetID)
+        {
+            Token token = new Token();
+            token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
+
             SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
             IList<Column> sheetCols = smartsheet.Sheets().Columns().ListColumns(sheetID);
-
             var columnTitleIDList = new List<KeyValuePair<string, long>>();
 
             foreach (Column tmpCols in sheetCols)
@@ -161,30 +175,6 @@ namespace SmartSheetTest
                 columnTitleIDList.Add(new KeyValuePair<string, long>((string)tmpCols.Title, (long)tmpCols.ID));
             }
             return columnTitleIDList;
-        }
-
-        private List<KeyValuePair<string, long>> getSheetList()
-        {
-            // Set the Access Token
-            Token token = new Token();
-            token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
-
-            // Use the Smartsheet Builder to create a Smartsheet
-            SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
-
-            // Get home
-            Home home = smartsheet.Home().GetHome(new ObjectInclusion[] { ObjectInclusion.TEMPLATES });
-
-            // List Sheets
-            IList<Sheet> homeSheets = smartsheet.Sheets().ListSheets();
-
-            var sheetNameIDList = new List<KeyValuePair<string, long>>();
-
-            foreach (Sheet tmpSheet in homeSheets)
-            {
-                sheetNameIDList.Add(new KeyValuePair<string, long>((string)tmpSheet.Name, (long)tmpSheet.ID));             
-            }
-            return sheetNameIDList;
         }
 
         public string connString { get; set; }
