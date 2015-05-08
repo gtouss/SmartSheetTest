@@ -27,6 +27,8 @@ namespace SmartSheetTest
         private void button1_Click(object sender, EventArgs e)
         {
             // Set the Access Token
+            Token token = new Token();
+            token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
 
             // Use the Smartsheet Builder to create a Smartsheet
             SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
@@ -47,6 +49,9 @@ namespace SmartSheetTest
         private void UpdateSheet_Click(object sender, EventArgs e)
         {
             // Set the Access Token
+            Token token = new Token();
+            token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
+
             // Use the Smartsheet Builder to create a Smartsheet
             SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
 
@@ -111,6 +116,8 @@ namespace SmartSheetTest
         private void ListColumns_Click(object sender, EventArgs e)
         {
             // Set the Access Token
+            Token token = new Token();
+            token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
 
             // Use the Smartsheet Builder to create a Smartsheet
             SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
