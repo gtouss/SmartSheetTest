@@ -88,6 +88,7 @@ namespace SmartSheetTest
 
         private List<KeyValuePair<string, long>> getSheetList()
         {
+            Debug.WriteLine("getSheetList");
             Token token = new Token();
             token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
 
@@ -105,6 +106,7 @@ namespace SmartSheetTest
 
         private List<KeyValuePair<string, long>> getColumnList(long sheetID)
         {
+            Debug.WriteLine("getColumnList");
             Token token = new Token();
             token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
 
@@ -125,12 +127,18 @@ namespace SmartSheetTest
 
         private void syncButton_Click(object sender, EventArgs e)
         {
+            Debug.WriteLine("syncButton_Click");
             string commaSeparatedIncidents = getIncidentNumbersFromSheet();
+            string cmd = "select Customer as Client,Incident_ID as IncidentID,AssignedTo,cast(StartDate as date) as StartDate,cast(LastActionDate as date) as LastAction,Problem,TeamName from supportssrs.dbo.TB_INCIDENT where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null";
+            if (commaSeparatedIncidents.Length > 0) cmd = cmd + "and Incident_ID not in (" + commaSeparatedIncidents + ")";
+            cmd = cmd + " order by TeamName asc, Customer asc";
+            
+            var newIncidentsTable = getData(cmd);
+            populateRowsFromTable(newIncidentsTable);
+
+            commaSeparatedIncidents = getIncidentNumbersFromSheet();
             if (commaSeparatedIncidents.Length > 0)
             {
-                var newIncidentsTable = getData("select Customer as Client,Incident_ID as IncidentID,AssignedTo,cast(StartDate as date) as StartDate,cast(LastActionDate as date) as LastAction,Problem,TeamName from supportssrs.dbo.TB_INCIDENT where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null and Incident_ID not in (" + commaSeparatedIncidents + ") order by TeamName asc, Customer asc");
-                populateRowsFromTable(newIncidentsTable);
-
                 var closedIncidentsTable = getData("select Customer as Client,Incident_ID as IncidentID,AssignedTo,cast(StartDate as date) as StartDate,cast(LastActionDate as date) as LastAction,Problem,TeamName from supportssrs.dbo.TB_INCIDENT where TeamName like '%team%' and enddate is not null and Incident_ID in (" + commaSeparatedIncidents + ") order by TeamName asc, Customer asc");
                 deleteRowsFromTable(closedIncidentsTable);                
             }
@@ -138,6 +146,7 @@ namespace SmartSheetTest
 
         private int getColumnIndex(string columnName)
         {
+            Debug.WriteLine("getColumnIndex");
             int columnIndex = -1;
             Token token = new Token();
             token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
@@ -148,13 +157,14 @@ namespace SmartSheetTest
             IList<Column> sheetCols = smartsheet.Sheets().Columns().ListColumns(sheetID);
             foreach (Column tmpCols in sheetCols)
             {
-                if (tmpCols.Title == "IncidentID") columnIndex = (int)tmpCols.Index;
+                if (tmpCols.Title == columnName) columnIndex = (int)tmpCols.Index;
             }
             return columnIndex;
         }
 
         private void deleteRowsFromTable(DataTable tableData)
         {
+            Debug.WriteLine("deleteRowsFromTable");
             Token token = new Token();
             token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
             var sheetList = getSheetList();
@@ -183,6 +193,7 @@ namespace SmartSheetTest
 
         private string getIncidentNumbersFromSheet()
         {
+            Debug.WriteLine("getIncidentNumbersFromSheet");
             string commaSeparatedIncidents = "";
             Token token = new Token();
             token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
@@ -209,6 +220,7 @@ namespace SmartSheetTest
 
         private DataTable getData(string query)
         {
+            Debug.WriteLine("getData");
             connString = "Server=srv-it3.celerant.com;Database=SupportSSRS;Trusted_Connection=Yes;";
             DataTable table1 = new DataTable();
             using (SqlConnection conn = new SqlConnection(connString))
@@ -226,6 +238,7 @@ namespace SmartSheetTest
 
         private void populateRowsFromTable(DataTable tableData)
         {
+            Debug.WriteLine("populateRowsFromTable");
             Token token = new Token();
             token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
             SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
@@ -264,6 +277,10 @@ namespace SmartSheetTest
                 cellTeamName.Value = dtrow["TeamName"];
                 cellTeamName.ColumnId = columnList.First(kvp => kvp.Key == "TeamName").Value;
 
+                Cell cellStatus = new Cell();
+                cellStatus.Value = "Open";
+                cellStatus.ColumnId = columnList.First(kvp => kvp.Key == "Status").Value;
+
                 //// Store the cells in a list
                 List<Cell> cellList = new List<Cell>();
                 cellList.Add(cellClient);
@@ -273,6 +290,7 @@ namespace SmartSheetTest
                 cellList.Add(cellLastActionDate);
                 cellList.Add(cellProblem);
                 cellList.Add(cellTeamName);
+                cellList.Add(cellStatus);
                 //// Create a row and add the list of cells to the row
                 Row row = new Row();
 
@@ -282,6 +300,81 @@ namespace SmartSheetTest
                 rows.Add(row);
                 RowWrapper rowWrapper = new RowWrapper.InsertRowsBuilder().SetRows(rows).SetToBottom(true).Build();
                 smartsheet.Sheets().Rows().InsertRows(sheetID, rowWrapper);
+            }
+
+            string commaSeparatedIncidents = getIncidentNumbersFromSheet();
+            if (commaSeparatedIncidents.Length > 0)
+            {
+                var actionTable = getData("select b.Incident_ID as IncidentID, a.Detail, a.Date from tb_incident_action a inner join tb_incident b on (a.DocNum = b.DocNum) where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null and Incident_ID in (" + commaSeparatedIncidents + ") order by b.TeamName,b.Customer,b.Incident_ID,a.Date");
+                populateActions(actionTable);
+            }
+        }
+
+        private void populateActions(DataTable tableData)
+        {
+            Debug.WriteLine("populateActions");
+            Token token = new Token();
+            token.AccessToken = System.Configuration.ConfigurationManager.AppSettings["smartSheetAccessToken"].ToString();
+            SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
+            var sheetList = getSheetList();
+            long sheetID = sheetList.First(kvp => kvp.Key == "Old Incidents").Value;
+            var columnList = getColumnList(sheetID);
+            Sheet sheet = smartsheet.Sheets().GetSheet((long)sheetID, new ObjectInclusion[] { ObjectInclusion.DATA, ObjectInclusion.COLUMNS, ObjectInclusion.DISCUSSIONS });
+
+            int columnIndex = getColumnIndex("IncidentID");
+            int startDateIndex = getColumnIndex("StartDate");
+
+            if (columnIndex != -1)
+            {
+                foreach (Row tmpRow in sheet.Rows)
+                {
+                    Debug.WriteLine("Adding discussion for "+tmpRow.Cells[columnIndex].Value.ToString());
+                    if (tmpRow.Discussions == null)  //Has no discussions
+                    {
+                        string startDate = "";
+                        if (tmpRow.Cells[startDateIndex].Value.ToString() != null) startDate = tmpRow.Cells[startDateIndex].Value.ToString();
+                        Comment comment = new Comment.AddCommentBuilder().SetText("Incident Started:  " + startDate).Build();
+                        Discussion discussion = new Discussion.CreateDiscussionBuilder().SetTitle("Actions").SetComment(comment).Build();
+                        smartsheet.Rows().Discussions().CreateDiscussion((long)tmpRow.ID, discussion);
+                    }
+                }
+                
+                SmartsheetClient smartsheetStep2 = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
+                Sheet sheetStep2 = smartsheetStep2.Sheets().GetSheet((long)sheetID, new ObjectInclusion[] { ObjectInclusion.DATA, ObjectInclusion.COLUMNS, ObjectInclusion.DISCUSSIONS });
+
+                foreach (Row tmpRow in sheetStep2.Rows)
+                {
+                    int value;
+                    bool isNumeric = int.TryParse(tmpRow.Cells[columnIndex].Value.ToString(), out value);
+                    if (isNumeric == true)
+                    {
+                        var results = from action in tableData.AsEnumerable()
+                                      where action.Field<int>("IncidentID") == value
+                                      select action;
+
+                        foreach (DataRow row in results)
+                        {
+                            string actionDetail = (string)row["Detail"];
+                            Debug.WriteLine(actionDetail);
+
+                            if (tmpRow.Discussions != null && tmpRow.Discussions.Count > 0 && actionDetail != null && actionDetail != "")
+                            {
+                                Comment comment = new Comment.AddCommentBuilder().SetText(actionDetail).Build();
+                                smartsheet.Discussions().AddDiscussionComment((long)tmpRow.Discussions[0].ID, comment);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void updateDiscusssions_Click(object sender, EventArgs e)
+        {
+            string commaSeparatedIncidents = getIncidentNumbersFromSheet();
+            if (commaSeparatedIncidents.Length > 0)
+            {
+                var actionTable = getData("select b.Incident_ID as IncidentID, a.Detail, a.Date from tb_incident_action a inner join tb_incident b on (a.DocNum = b.DocNum) where StartDate<dateadd(dd,-7,cast(getdate() as date)) and TeamName like '%team%' and enddate is null and Incident_ID in (" + commaSeparatedIncidents + ") order by b.TeamName,b.Customer,b.Incident_ID,a.Date");
+                populateActions(actionTable);
             }
         }
     }

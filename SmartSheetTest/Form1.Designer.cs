@@ -34,6 +34,7 @@
             this.ListColumns = new System.Windows.Forms.Button();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.syncButton = new System.Windows.Forms.Button();
+            this.updateDiscusssions = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -93,11 +94,22 @@
             this.syncButton.UseVisualStyleBackColor = true;
             this.syncButton.Click += new System.EventHandler(this.syncButton_Click);
             // 
+            // updateDiscusssions
+            // 
+            this.updateDiscusssions.Location = new System.Drawing.Point(121, 44);
+            this.updateDiscusssions.Name = "updateDiscusssions";
+            this.updateDiscusssions.Size = new System.Drawing.Size(136, 23);
+            this.updateDiscusssions.TabIndex = 6;
+            this.updateDiscusssions.Text = "Update Discussions";
+            this.updateDiscusssions.UseVisualStyleBackColor = true;
+            this.updateDiscusssions.Click += new System.EventHandler(this.updateDiscusssions_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(910, 350);
+            this.Controls.Add(this.updateDiscusssions);
             this.Controls.Add(this.syncButton);
             this.Controls.Add(this.dataGridView1);
             this.Controls.Add(this.ListColumns);
@@ -120,6 +132,7 @@
         private System.Windows.Forms.Button ListColumns;
         private System.Windows.Forms.DataGridView dataGridView1;
         private System.Windows.Forms.Button syncButton;
+        private System.Windows.Forms.Button updateDiscusssions;
     }
 }
 
